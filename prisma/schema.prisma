@@ -1,0 +1,265 @@
+// Prisma schema for a property rental management app.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  OWNER
+  TENANT
+}
+
+enum PropertyType {
+  FLAT
+  OFFICE
+  LAND
+  RESORT
+  SOCIETY
+}
+
+enum PropertyStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
+  PARTIAL
+}
+
+enum PaymentMethod {
+  ONLINE
+  CASH
+  BANK
+}
+
+enum NotificationType {
+  BOOKING
+  PAYMENT
+  LEASE
+  MAINTENANCE
+  SYSTEM
+}
+
+enum DocumentKind {
+  AGREEMENT
+  ID_PROOF
+  OTHER
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String? // null for OAuth-only (e.g. Google) accounts
+  role         Role     @default(TENANT)
+  phone        String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  properties    Property[]     @relation("PropertyOwner")
+  leases        Lease[]        @relation("LeaseTenant")
+  bookings      Booking[]      @relation("BookingTenant")
+  notifications Notification[]
+
+  // Owner-authored notes/documents about a tenant, and the tenant side of them.
+  authoredNotes     TenantNote[]     @relation("NoteAuthor")
+  notesAbout        TenantNote[]     @relation("NoteSubject")
+  authoredDocuments TenantDocument[] @relation("DocumentOwner")
+  documentsAbout    TenantDocument[] @relation("DocumentSubject")
+
+  @@index([role])
+}
+
+model Property {
+  id          String         @id @default(cuid())
+  ownerId     String
+  title       String
+  type        PropertyType
+  address     String
+  lat         Float?
+  lng         Float?
+  rent        Decimal        @db.Decimal(12, 2)
+  deposit     Decimal        @db.Decimal(12, 2)
+  areaSqft    Int
+  amenities   String[]
+  description String?
+  status      PropertyStatus @default(VACANT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  owner    User            @relation("PropertyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  images   PropertyImage[]
+  leases   Lease[]
+  bookings Booking[]
+
+  @@index([ownerId])
+  @@index([type])
+  @@index([status])
+  @@index([lat, lng])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  caption    String?
+  isPrimary  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+}
+
+model Lease {
+  id           String    @id @default(cuid())
+  propertyId   String
+  tenantId     String
+  startDate    DateTime
+  endDate      DateTime?
+  monthlyRent  Decimal   @db.Decimal(12, 2)
+  dueDay       Int       @default(1)
+  deposit      Decimal   @db.Decimal(12, 2)
+  agreementUrl String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  property  Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant    User             @relation("LeaseTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+  payments  Payment[]
+  documents TenantDocument[]
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([active])
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  propertyId String
+  tenantId   String
+  status     BookingStatus @default(PENDING)
+  message    String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant   User     @relation("BookingTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  leaseId           String
+  amount            Decimal       @db.Decimal(12, 2)
+  periodMonth       DateTime
+  status            PaymentStatus @default(PENDING)
+  method            PaymentMethod @default(ONLINE)
+  razorpayPaymentId String?       @unique
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  lease   Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  receipt Receipt?
+
+  @@unique([leaseId, periodMonth])
+  @@index([leaseId])
+  @@index([status])
+  @@index([periodMonth])
+}
+
+model Receipt {
+  id            String   @id @default(cuid())
+  paymentId     String   @unique
+  receiptNumber String   @unique
+  url           String?
+  issuedAt      DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  type      NotificationType @default(SYSTEM)
+  // Deterministic key for idempotent cron notifications (null for ad-hoc ones).
+  dedupeKey String?          @unique
+  // Optional deep-link target (e.g. lease for a one-click "Renew Lease").
+  leaseId   String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([userId, read])
+}
+
+// Free-text notes an owner keeps about one of their tenants.
+model TenantNote {
+  id        String   @id @default(cuid())
+  ownerId   String
+  tenantId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  owner  User @relation("NoteAuthor", fields: [ownerId], references: [id], onDelete: Cascade)
+  tenant User @relation("NoteSubject", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, tenantId])
+}
+
+// Documents an owner uploads for a tenant (agreement, ID proof, etc.).
+model TenantDocument {
+  id        String       @id @default(cuid())
+  ownerId   String
+  tenantId  String
+  leaseId   String?
+  name      String
+  url       String
+  kind      DocumentKind @default(OTHER)
+  createdAt DateTime     @default(now())
+
+  owner  User   @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  tenant User   @relation("DocumentSubject", fields: [tenantId], references: [id], onDelete: Cascade)
+  lease  Lease? @relation(fields: [leaseId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, tenantId])
+  @@index([leaseId])
+}
