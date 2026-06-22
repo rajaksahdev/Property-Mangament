@@ -230,7 +230,7 @@ async function main() {
   ) {
     for (let i = 11; i >= 0; i--) {
       const period = monthsAgo(i);
-      let status = PaymentStatus.PAID;
+      let status: PaymentStatus = PaymentStatus.PAID;
       let amount = monthly;
       if (i === 0) status = PaymentStatus.PENDING;
       else if (i === 1) status = PaymentStatus.OVERDUE;
