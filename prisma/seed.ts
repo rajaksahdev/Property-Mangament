@@ -51,7 +51,9 @@ async function main() {
       passwordHash,
       role: Role.OWNER,
       phone: "+91 98765 43210",
-      avatarUrl: "https://i.pravatar.cc/150?u=owner",
+      // No avatar by default — the UI falls back to initials. Users can upload
+      // one from the Profile page. (Avoids depending on a remote avatar host.)
+      avatarUrl: null,
     },
   });
 
@@ -62,7 +64,7 @@ async function main() {
       passwordHash,
       role: Role.TENANT,
       phone: "+91 91234 56780",
-      avatarUrl: "https://i.pravatar.cc/150?u=tenant1",
+      avatarUrl: null,
     },
   });
 
@@ -73,7 +75,7 @@ async function main() {
       passwordHash,
       role: Role.TENANT,
       phone: "+91 99887 76655",
-      avatarUrl: "https://i.pravatar.cc/150?u=tenant2",
+      avatarUrl: null,
     },
   });
 
@@ -94,8 +96,8 @@ async function main() {
       status: PropertyStatus.OCCUPIED,
       images: {
         create: [
-          { url: "https://picsum.photos/seed/flat-1/800/600", isPrimary: true, sortOrder: 0 },
-          { url: "https://picsum.photos/seed/flat-2/800/600", sortOrder: 1 },
+          { url: "/placeholders/flat.svg", isPrimary: true, sortOrder: 0 },
+          { url: "/placeholders/interior.svg", sortOrder: 1 },
         ],
       },
     },
@@ -117,7 +119,7 @@ async function main() {
       status: PropertyStatus.OCCUPIED,
       images: {
         create: [
-          { url: "https://picsum.photos/seed/office-1/800/600", isPrimary: true },
+          { url: "/placeholders/office.svg", isPrimary: true },
         ],
       },
     },
@@ -139,7 +141,7 @@ async function main() {
       status: PropertyStatus.VACANT,
       images: {
         create: [
-          { url: "https://picsum.photos/seed/land-1/800/600", isPrimary: true },
+          { url: "/placeholders/land.svg", isPrimary: true },
         ],
       },
     },
@@ -161,8 +163,8 @@ async function main() {
       status: PropertyStatus.MAINTENANCE,
       images: {
         create: [
-          { url: "https://picsum.photos/seed/resort-1/800/600", isPrimary: true },
-          { url: "https://picsum.photos/seed/resort-2/800/600", sortOrder: 1 },
+          { url: "/placeholders/resort.svg", isPrimary: true },
+          { url: "/placeholders/interior.svg", sortOrder: 1 },
         ],
       },
     },
@@ -184,7 +186,7 @@ async function main() {
       status: PropertyStatus.VACANT,
       images: {
         create: [
-          { url: "https://picsum.photos/seed/society-1/800/600", isPrimary: true },
+          { url: "/placeholders/society.svg", isPrimary: true },
         ],
       },
     },

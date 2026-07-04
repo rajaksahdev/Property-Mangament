@@ -60,6 +60,11 @@ const nextConfig: NextConfig = {
     "@react-email/components",
   ],
   images: {
+    // Allow our own bundled SVG placeholders through the optimizer. Locked down
+    // with a strict CSP + attachment disposition so an SVG can't execute script.
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Hosts allowed for next/image. R2 public bucket + seed placeholders.
     remotePatterns: [
       { protocol: "https", hostname: "**.r2.dev" },
