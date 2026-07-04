@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
 
 import { markAllNotificationsRead } from "@/lib/actions/notification";
@@ -32,9 +33,24 @@ export function NotificationsDropdown({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
+  // Poll the unread count so the badge stays live without a page refresh.
+  // Seeded with the server-rendered count to avoid a flash on first paint.
+  const { data: liveUnread = unread, refetch } = useQuery({
+    queryKey: ["notifications-unread"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications/unread");
+      if (!res.ok) return unread;
+      const json: { unread: number } = await res.json();
+      return json.unread;
+    },
+    initialData: unread,
+    refetchInterval: 30_000,
+  });
+
   function markAll() {
     startTransition(async () => {
       await markAllNotificationsRead();
+      await refetch();
       router.refresh();
     });
   }
@@ -49,9 +65,9 @@ export function NotificationsDropdown({
           aria-label="Notifications"
         >
           <Bell className="size-5" />
-          {unread > 0 && (
+          {liveUnread > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
-              {unread > 9 ? "9+" : unread}
+              {liveUnread > 9 ? "9+" : liveUnread}
             </span>
           )}
         </Button>
@@ -59,7 +75,7 @@ export function NotificationsDropdown({
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-medium">Notifications</span>
-          {unread > 0 && (
+          {liveUnread > 0 && (
             <button
               type="button"
               onClick={markAll}
