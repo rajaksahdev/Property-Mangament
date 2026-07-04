@@ -3,6 +3,7 @@ import { CalendarClock } from "lucide-react";
 
 import { getUpcomingRenewals } from "@/lib/dashboard/queries";
 import { formatDate } from "@/lib/format";
+import { EmptyState } from "@/components/empty-state";
 import {
   Card,
   CardContent,
@@ -25,9 +26,12 @@ export async function RenewalsList({ ownerId }: { ownerId: string }) {
       </CardHeader>
       <CardContent>
         {renewals.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No renewals due in the next 30 days.
-          </p>
+          <EmptyState
+            compact
+            icon={CalendarClock}
+            title="No upcoming renewals"
+            description="No leases end in the next 30 days."
+          />
         ) : (
           <ul className="divide-y">
             {renewals.map((renewal) => (

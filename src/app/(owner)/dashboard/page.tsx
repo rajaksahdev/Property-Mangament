@@ -6,8 +6,10 @@ import { StatCards } from "@/components/dashboard/stat-cards";
 import { ChartsSection } from "@/components/dashboard/charts-section";
 import { DuesTable } from "@/components/dashboard/dues-table";
 import { RenewalsList } from "@/components/dashboard/renewals-list";
+import { PropertiesMapSection } from "@/components/dashboard/properties-map-section";
 import {
   ChartsSkeleton,
+  MapCardSkeleton,
   StatCardsSkeleton,
   TableCardSkeleton,
 } from "@/components/dashboard/skeletons";
@@ -50,6 +52,10 @@ export default async function DashboardPage() {
           <RenewalsList ownerId={ownerId} />
         </Suspense>
       </div>
+
+      <Suspense fallback={<MapCardSkeleton />}>
+        <PropertiesMapSection ownerId={ownerId} />
+      </Suspense>
     </div>
   );
 }

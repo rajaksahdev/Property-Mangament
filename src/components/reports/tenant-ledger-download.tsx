@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { FileSpreadsheet, FileText } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { ReportDownloadButton } from "@/components/reports/report-download-button";
 import {
   Select,
   SelectContent,
@@ -43,28 +42,16 @@ export function TenantLedgerDownload({
       </Select>
 
       <div className="flex gap-2">
-        {tenantId ? (
-          <Button asChild variant="outline" size="sm">
-            <a href={`${base}&format=pdf`}>
-              <FileText /> PDF
-            </a>
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" disabled>
-            <FileText /> PDF
-          </Button>
-        )}
-        {tenantId ? (
-          <Button asChild variant="outline" size="sm">
-            <a href={`${base}&format=xlsx`}>
-              <FileSpreadsheet /> Excel
-            </a>
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" disabled>
-            <FileSpreadsheet /> Excel
-          </Button>
-        )}
+        <ReportDownloadButton
+          url={`${base}&format=pdf`}
+          format="pdf"
+          disabled={!tenantId}
+        />
+        <ReportDownloadButton
+          url={`${base}&format=xlsx`}
+          format="xlsx"
+          disabled={!tenantId}
+        />
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { PartyPopper } from "lucide-react";
 
 import { getDuesAging, type DuesRow } from "@/lib/dashboard/queries";
+import { EmptyState } from "@/components/empty-state";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -62,9 +64,12 @@ export async function DuesTable({ ownerId }: { ownerId: string }) {
         </div>
 
         {rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No outstanding dues. 🎉
-          </p>
+          <EmptyState
+            compact
+            icon={PartyPopper}
+            title="No outstanding dues"
+            description="Every tenant is paid up."
+          />
         ) : (
           <Table>
             <TableHeader>

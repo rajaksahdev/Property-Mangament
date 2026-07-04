@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  FileSpreadsheet,
   FileText,
   TrendingUp,
   TriangleAlert,
@@ -17,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ReportDownloadButton } from "@/components/reports/report-download-button";
 import { TenantLedgerDownload } from "@/components/reports/tenant-ledger-download";
 
 export const metadata: Metadata = { title: "Reports · Property Manager" };
@@ -81,16 +80,14 @@ export default async function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <a href={`/api/reports/${type}?format=pdf`}>
-                    <FileText /> PDF
-                  </a>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <a href={`/api/reports/${type}?format=xlsx`}>
-                    <FileSpreadsheet /> Excel
-                  </a>
-                </Button>
+                <ReportDownloadButton
+                  url={`/api/reports/${type}?format=pdf`}
+                  format="pdf"
+                />
+                <ReportDownloadButton
+                  url={`/api/reports/${type}?format=xlsx`}
+                  format="xlsx"
+                />
               </div>
             </CardContent>
           </Card>
