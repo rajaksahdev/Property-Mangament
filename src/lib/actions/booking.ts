@@ -62,26 +62,40 @@ export async function createBooking(
     parsed.data.message?.trim() ||
     (isBooking ? "I'd like to book this property." : null);
 
-  await db.$transaction([
-    db.booking.create({
-      data: {
-        propertyId,
-        tenantId: tenant.id,
-        status: "PENDING",
-        message,
-      },
-    }),
-    db.notification.create({
-      data: {
-        userId: property.ownerId,
-        title: isBooking ? "New booking request" : "New inquiry",
-        body: `${tenant.name ?? "A tenant"} ${
-          isBooking ? "requested to book" : "sent an inquiry about"
-        } ${property.title}.`,
-        type: "BOOKING",
-      },
-    }),
-  ]);
+  try {
+    await db.$transaction([
+      db.booking.create({
+        data: {
+          propertyId,
+          tenantId: tenant.id,
+          status: "PENDING",
+          message,
+        },
+      }),
+      db.notification.create({
+        data: {
+          userId: property.ownerId,
+          title: isBooking ? "New booking request" : "New inquiry",
+          body: `${tenant.name ?? "A tenant"} ${
+            isBooking ? "requested to book" : "sent an inquiry about"
+          } ${property.title}.`,
+          type: "BOOKING",
+        },
+      }),
+    ]);
+  } catch (error) {
+    // The `Booking_property_tenant_pending_key` partial unique index is the
+    // race-safe backstop for the check above: if two requests slip past it
+    // concurrently, the second insert trips P2002 here.
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "P2002"
+    ) {
+      return { error: "You already have a pending request for this property." };
+    }
+    throw error;
+  }
 
   revalidatePath("/requests");
   revalidatePath("/bookings");

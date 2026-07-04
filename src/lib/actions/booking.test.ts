@@ -131,6 +131,39 @@ describe("createBooking", () => {
       }),
     );
   });
+
+  it("translates a concurrent P2002 collision into the duplicate message", async () => {
+    mockRequireTenant.mockResolvedValue(TENANT);
+    vi.mocked(db.property.findUnique).mockResolvedValue({
+      id: "prop-1",
+      title: "Flat",
+      status: "VACANT",
+      ownerId: "owner-1",
+    } as never);
+    // Pre-check passes, but the partial-unique index trips on insert (race).
+    vi.mocked(db.booking.findFirst).mockResolvedValue(null);
+    vi.mocked(db.$transaction).mockRejectedValueOnce(
+      Object.assign(new Error("Unique constraint failed"), { code: "P2002" }),
+    );
+
+    const result = await createBooking("prop-1", VALID);
+
+    expect(result.error).toMatch(/already have a pending request/i);
+  });
+
+  it("rethrows non-P2002 errors from the transaction", async () => {
+    mockRequireTenant.mockResolvedValue(TENANT);
+    vi.mocked(db.property.findUnique).mockResolvedValue({
+      id: "prop-1",
+      title: "Flat",
+      status: "VACANT",
+      ownerId: "owner-1",
+    } as never);
+    vi.mocked(db.booking.findFirst).mockResolvedValue(null);
+    vi.mocked(db.$transaction).mockRejectedValueOnce(new Error("db down"));
+
+    await expect(createBooking("prop-1", VALID)).rejects.toThrow("db down");
+  });
 });
 
 describe("cancelBooking", () => {
