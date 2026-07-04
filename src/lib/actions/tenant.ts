@@ -3,8 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { requireOwnerId } from "@/lib/auth-guards";
 import {
   documentMetaSchema,
   noteSchema,
@@ -16,14 +16,6 @@ export type TenantActionState = {
   error?: string;
   fieldErrors?: Record<string, string[] | undefined>;
 };
-
-async function requireOwnerId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "OWNER") {
-    throw new Error("UNAUTHORIZED");
-  }
-  return session.user.id;
-}
 
 /**
  * A user is "this owner's tenant" only if they hold a lease on a property the

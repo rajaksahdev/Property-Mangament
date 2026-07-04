@@ -293,6 +293,7 @@ export function AssignTenantForm({
                 size="icon"
                 className="size-7"
                 onClick={removeAgreement}
+                aria-label="Remove agreement"
               >
                 <X className="size-4" />
               </Button>

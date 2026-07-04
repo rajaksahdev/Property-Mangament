@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ export function TenantFilters({
   properties: { id: string; title: string }[];
 }) {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [q, setQ] = useState(initial.q ?? "");
   const [propertyId, setPropertyId] = useState(initial.propertyId ?? "all");
   const [lease, setLease] = useState(initial.lease ?? "all");
@@ -43,15 +45,29 @@ export function TenantFilters({
     if (lease !== "all") params.set("lease", lease);
     if (dues) params.set("dues", "yes");
     const query = params.toString();
-    router.push(query ? `/tenants?${query}` : "/tenants");
+    startTransition(() =>
+      router.push(query ? `/tenants?${query}` : "/tenants"),
+    );
   }
+
+  // Live search: auto-apply the text query shortly after the user stops typing.
+  const debouncedQ = useDebouncedValue(q, 400);
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    apply();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
 
   function clear() {
     setQ("");
     setPropertyId("all");
     setLease("all");
     setDues(false);
-    router.push("/tenants");
+    startTransition(() => router.push("/tenants"));
   }
 
   const hasFilters =
@@ -69,7 +85,11 @@ export function TenantFilters({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by name or email"
           className="pl-8"
+          aria-label="Search tenants"
         />
+        {pending && (
+          <Loader2 className="absolute right-2.5 top-2.5 size-4 animate-spin text-muted-foreground" />
+        )}
       </div>
 
       <Select value={propertyId} onValueChange={setPropertyId}>
@@ -108,8 +128,8 @@ export function TenantFilters({
       </label>
 
       <div className="flex gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end">
-        <Button type="submit">
-          <Search /> Apply
+        <Button type="submit" disabled={pending}>
+          {pending ? <Loader2 className="animate-spin" /> : <Search />} Apply
         </Button>
         {hasFilters && (
           <Button type="button" variant="ghost" onClick={clear}>
