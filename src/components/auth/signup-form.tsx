@@ -10,6 +10,7 @@ import { signupAction } from "@/lib/actions/auth";
 import { signupSchema, type SignupInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Form,
@@ -132,11 +133,7 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    autoComplete="new-password"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -150,11 +147,7 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Confirm password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    autoComplete="new-password"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

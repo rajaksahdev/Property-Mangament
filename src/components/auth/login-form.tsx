@@ -10,6 +10,7 @@ import { loginAction } from "@/lib/actions/auth";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Form,
@@ -88,11 +89,7 @@ export function LoginForm() {
                   </Link>
                 </div>
                 <FormControl>
-                  <Input
-                    type="password"
-                    autoComplete="current-password"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="current-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

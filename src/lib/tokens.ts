@@ -1,5 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 
+import { env } from "@/env";
+
 /**
  * Stateless, signed password-reset tokens (HS256 via `jose`).
  *
@@ -7,7 +9,7 @@ import { SignJWT, jwtVerify } from "jose";
  * so no extra DB table is needed. The reset action additionally re-checks the
  * user still exists before applying the new password.
  */
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
+const secret = new TextEncoder().encode(env.AUTH_SECRET);
 const ISSUER = "property-manager";
 const AUDIENCE = "password-reset";
 const TTL = "1h";
