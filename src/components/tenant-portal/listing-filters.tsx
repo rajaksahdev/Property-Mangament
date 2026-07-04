@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { formatCurrency } from "@/lib/format";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 export function ListingFilters({
   initial,
@@ -17,6 +18,7 @@ export function ListingFilters({
   maxPrice: number;
 }) {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const bound = Math.max(10000, Math.ceil(maxPrice / 1000) * 1000);
 
   const [q, setQ] = useState(initial.q ?? "");
@@ -27,7 +29,7 @@ export function ListingFilters({
 
   function pushWith(params: URLSearchParams) {
     const qs = params.toString();
-    router.push(qs ? `/home?${qs}` : "/home");
+    startTransition(() => router.push(qs ? `/home?${qs}` : "/home"));
   }
 
   function apply(event?: React.FormEvent) {
@@ -39,6 +41,24 @@ export function ListingFilters({
     if (range[1] < bound) params.set("maxPrice", String(range[1]));
     pushWith(params);
   }
+
+  // Live search: auto-apply the text query shortly after the user stops typing.
+  const debouncedQ = useDebouncedValue(q, 400);
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (initial.type) params.set("type", initial.type);
+    if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
+    if (range[0] > 0) params.set("minPrice", String(range[0]));
+    if (range[1] < bound) params.set("maxPrice", String(range[1]));
+    pushWith(params);
+    // Only react to debounced query changes; other filters apply via the button.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
 
   function clear() {
     setQ("");
@@ -61,7 +81,11 @@ export function ListingFilters({
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search location or title"
             className="pl-8"
+            aria-label="Search listings"
           />
+          {pending && (
+            <Loader2 className="absolute right-2.5 top-2.5 size-4 animate-spin text-muted-foreground" />
+          )}
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
@@ -81,8 +105,8 @@ export function ListingFilters({
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit">
-          <Search /> Apply
+        <Button type="submit" disabled={pending}>
+          {pending ? <Loader2 className="animate-spin" /> : <Search />} Apply
         </Button>
         <Button type="button" variant="ghost" onClick={clear}>
           <X /> Clear

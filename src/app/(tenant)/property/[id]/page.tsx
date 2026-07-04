@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PropertyCarousel } from "@/components/tenant-portal/property-carousel";
+import { PropertyGallery } from "@/components/tenant-portal/property-gallery";
 import { PropertyMap } from "@/components/tenant-portal/property-map";
 import { PropertyActions } from "@/components/tenant-portal/property-actions";
 import type { PropertyType } from "@/generated/prisma/enums";
@@ -68,7 +68,7 @@ export default async function PropertyDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
-          <PropertyCarousel images={property.images} title={property.title} />
+          <PropertyGallery images={property.images} title={property.title} />
 
           <div>
             <div className="flex flex-wrap items-center gap-2">

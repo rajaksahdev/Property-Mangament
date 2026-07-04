@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Building2, MapPin } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SafeImage } from "@/components/safe-image";
 import { formatCurrency } from "@/lib/format";
 import type { PropertyType } from "@/generated/prisma/enums";
 
@@ -31,7 +31,7 @@ export function ListingCard({ property }: { property: ListingCardData }) {
       <Card className="flex h-full flex-col overflow-hidden pt-0 transition-shadow group-hover:shadow-md">
         <div className="relative aspect-video bg-muted">
           {property.coverImage ? (
-            <Image
+            <SafeImage
               src={property.coverImage}
               alt={property.title}
               fill

@@ -7,6 +7,7 @@ import {
   listingFilterSchema,
   type ListingFilters,
 } from "@/lib/validations/booking";
+import { EmptyState } from "@/components/empty-state";
 import { CategoryTiles } from "@/components/tenant-portal/category-tiles";
 import { ListingFilters as ListingFiltersBar } from "@/components/tenant-portal/listing-filters";
 import {
@@ -107,15 +108,11 @@ export default async function TenantHomePage({
       />
 
       {cards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-20 text-center">
-          <SearchX className="size-10 text-muted-foreground" />
-          <div>
-            <p className="font-medium">No properties match your filters</p>
-            <p className="text-sm text-muted-foreground">
-              Try widening your price range or clearing filters.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={SearchX}
+          title="No properties match your filters"
+          description="Try widening your price range or clearing filters."
+        />
       ) : (
         <>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
