@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { requireOwnerId, requireTenant } from "@/lib/auth-guards";
+import { bookingLimiter, rateLimit } from "@/lib/rate-limit";
 import {
   createBookingSchema,
   type CreateBookingValues,
@@ -14,22 +15,6 @@ export type BookingActionState = {
   error?: string;
   success?: boolean;
 };
-
-async function requireTenant() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "TENANT") {
-    throw new Error("UNAUTHORIZED");
-  }
-  return session.user;
-}
-
-async function requireOwnerId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "OWNER") {
-    throw new Error("UNAUTHORIZED");
-  }
-  return session.user.id;
-}
 
 // ---------------------------------------------------------------------------
 // Tenant: create a booking request or inquiry (notifies the owner in-app)
@@ -43,6 +28,11 @@ export async function createBooking(
     tenant = await requireTenant();
   } catch {
     return { error: "You must be signed in as a tenant to do this." };
+  }
+
+  const { ok } = await rateLimit(bookingLimiter, `booking:${tenant.id}`);
+  if (!ok) {
+    return { error: "Too many requests. Please wait a minute and try again." };
   }
 
   const parsed = createBookingSchema.safeParse(values);
@@ -88,6 +78,50 @@ export async function createBooking(
         body: `${tenant.name ?? "A tenant"} ${
           isBooking ? "requested to book" : "sent an inquiry about"
         } ${property.title}.`,
+        type: "BOOKING",
+      },
+    }),
+  ]);
+
+  revalidatePath("/requests");
+  revalidatePath("/bookings");
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Tenant: withdraw their own pending booking request
+// ---------------------------------------------------------------------------
+export async function cancelBooking(
+  bookingId: string,
+): Promise<BookingActionState> {
+  let tenant: { id: string; name?: string | null };
+  try {
+    tenant = await requireTenant();
+  } catch {
+    return { error: "You must be signed in as a tenant to do this." };
+  }
+
+  // Only the owning tenant can withdraw, and only while still pending.
+  const booking = await db.booking.findFirst({
+    where: { id: bookingId, tenantId: tenant.id, status: "PENDING" },
+    select: {
+      id: true,
+      property: { select: { title: true, ownerId: true } },
+    },
+  });
+  if (!booking) {
+    return { error: "This request can no longer be withdrawn." };
+  }
+
+  await db.$transaction([
+    db.booking.delete({ where: { id: booking.id } }),
+    db.notification.create({
+      data: {
+        userId: booking.property.ownerId,
+        title: "Request withdrawn",
+        body: `${tenant.name ?? "A tenant"} withdrew their request for ${
+          booking.property.title
+        }.`,
         type: "BOOKING",
       },
     }),

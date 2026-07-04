@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { BookingStatusBadge } from "@/components/booking/booking-status-badge";
 import { RequestActions } from "@/components/booking/request-actions";
 
@@ -52,9 +53,12 @@ export default async function RequestsPage() {
         </CardHeader>
         <CardContent>
           {pending.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No pending requests.
-            </p>
+            <EmptyState
+              compact
+              icon={Inbox}
+              title="No pending requests"
+              description="New booking requests from tenants will appear here."
+            />
           ) : (
             <ul className="space-y-3">
               {pending.map((booking) => (

@@ -1,9 +1,16 @@
 import Link from "next/link";
-import { CalendarCheck, FileText, History, Inbox } from "lucide-react";
+import {
+  CalendarCheck,
+  FileText,
+  History,
+  Inbox,
+  Receipt,
+  Wallet,
+} from "lucide-react";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatMonth } from "@/lib/format";
 import {
   Card,
   CardContent,
@@ -12,7 +19,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
 import { BookingStatusBadge } from "@/components/booking/booking-status-badge";
+import { BookingCancelButton } from "@/components/booking/booking-cancel-button";
+import { PaymentStatusBadge } from "@/components/booking/payment-status-badge";
 
 export default async function BookingsPage() {
   const session = await auth();
@@ -35,6 +45,19 @@ export default async function BookingsPage() {
       orderBy: { startDate: "desc" },
     }),
   ]);
+
+  // Payment history + outstanding total for the current rental.
+  const payments = activeLease
+    ? await db.payment.findMany({
+        where: { leaseId: activeLease.id },
+        include: { receipt: { select: { url: true } } },
+        orderBy: { periodMonth: "desc" },
+        take: 12,
+      })
+    : [];
+  const outstanding = payments
+    .filter((p) => p.status !== "PAID")
+    .reduce((sum, p) => sum + Number(p.amount), 0);
 
   return (
     <div className="space-y-6">
@@ -94,6 +117,72 @@ export default async function BookingsPage() {
         </Card>
       )}
 
+      {/* Rent & payments for the current rental */}
+      {activeLease && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wallet className="size-4" /> Rent &amp; payments
+            </CardTitle>
+            <CardDescription>
+              {outstanding > 0 ? (
+                <span className="font-medium text-red-600">
+                  {formatCurrency(outstanding)} outstanding
+                </span>
+              ) : (
+                "You're all paid up."
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {payments.length === 0 ? (
+              <EmptyState
+                compact
+                icon={Wallet}
+                title="No payments yet"
+                description="Rent payments will appear here once your lease is active."
+              />
+            ) : (
+              <ul className="divide-y">
+                {payments.map((payment) => (
+                  <li
+                    key={payment.id}
+                    className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        {formatMonth(payment.periodMonth)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payment.paidAt
+                          ? `Paid ${formatDate(payment.paidAt)}`
+                          : "Not yet paid"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {payment.receipt?.url && (
+                        <a
+                          href={payment.receipt.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          <Receipt className="size-3.5" /> Receipt
+                        </a>
+                      )}
+                      <span className="text-sm font-medium">
+                        {formatCurrency(Number(payment.amount))}
+                      </span>
+                      <PaymentStatusBadge status={payment.status} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Booking requests */}
       <Card>
         <CardHeader>
@@ -103,13 +192,20 @@ export default async function BookingsPage() {
         </CardHeader>
         <CardContent>
           {bookings.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              You haven&apos;t made any requests yet.{" "}
-              <Link href="/home" className="font-medium underline">
-                Browse properties
-              </Link>
-              .
-            </p>
+            <EmptyState
+              compact
+              icon={Inbox}
+              title="No requests yet"
+              description="Browse available properties and send a booking request."
+              action={
+                <Link
+                  href="/home"
+                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Browse properties
+                </Link>
+              }
+            />
           ) : (
             <ul className="divide-y">
               {bookings.map((booking) => (
@@ -133,7 +229,15 @@ export default async function BookingsPage() {
                       {formatDate(booking.createdAt)}
                     </p>
                   </div>
-                  <BookingStatusBadge status={booking.status} />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <BookingStatusBadge status={booking.status} />
+                    {booking.status === "PENDING" && (
+                      <BookingCancelButton
+                        bookingId={booking.id}
+                        propertyTitle={booking.property.title}
+                      />
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
