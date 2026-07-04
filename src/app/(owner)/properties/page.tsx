@@ -10,6 +10,7 @@ import {
   type PropertyFilters as PropertyFilterParams,
 } from "@/lib/validations/property";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
 import {
   PropertyCard,
   type PropertyCardData,
@@ -114,20 +115,18 @@ export default async function PropertiesPage({
       />
 
       {cards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-20 text-center">
-          <Building2 className="size-10 text-muted-foreground" />
-          <div>
-            <p className="font-medium">No properties found</p>
-            <p className="text-sm text-muted-foreground">
-              Try adjusting your filters, or add your first property.
-            </p>
-          </div>
-          <Button asChild variant="outline">
-            <Link href="/properties/new">
-              <Plus /> Add property
-            </Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="No properties found"
+          description="Try adjusting your filters, or add your first property."
+          action={
+            <Button asChild variant="outline">
+              <Link href="/properties/new">
+                <Plus /> Add property
+              </Link>
+            </Button>
+          }
+        />
       ) : (
         <>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

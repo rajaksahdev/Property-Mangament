@@ -163,6 +163,7 @@ export function ImageUploader({
                   variant="destructive"
                   className="ml-auto size-7"
                   onClick={() => removeAt(index)}
+                  aria-label="Remove image"
                 >
                   <X className="size-3.5" />
                 </Button>

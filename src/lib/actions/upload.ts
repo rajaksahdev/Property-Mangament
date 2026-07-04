@@ -86,6 +86,57 @@ export async function createPresignedUploadUrl(
 }
 
 /**
+ * Presigned PUT URL for a user's own profile avatar. Unlike property/document
+ * uploads, this is allowed for ANY authenticated user (owners and tenants), and
+ * the key is namespaced under the caller's own id.
+ */
+export async function createPresignedAvatarUrl(
+  input: PresignUploadInput,
+): Promise<PresignResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return { ok: false, error: "Not authorized." };
+  }
+
+  const parsed = presignUploadSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid file.",
+    };
+  }
+
+  if (!isR2Configured()) {
+    return {
+      ok: false,
+      error:
+        "Image storage isn't configured. Set the R2_* variables in .env to enable uploads.",
+    };
+  }
+
+  const { filename, contentType, size } = parsed.data;
+  const key = `avatars/${session.user.id}/${randomUUID()}-${sanitizeFilename(filename)}`;
+
+  try {
+    const uploadUrl = await getSignedUrl(
+      getR2Client(),
+      new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        ContentType: contentType,
+        ContentLength: size,
+      }),
+      { expiresIn: 60 },
+    );
+
+    return { ok: true, uploadUrl, key, publicUrl: publicUrlForKey(key) };
+  } catch (error) {
+    console.error("Failed to presign avatar upload:", error);
+    return { ok: false, error: "Could not start the upload. Try again." };
+  }
+}
+
+/**
  * Presigned PUT URL for tenant documents (agreements, IDs). Allows PDFs and
  * images up to 10MB — validated server-side, same as image uploads.
  */

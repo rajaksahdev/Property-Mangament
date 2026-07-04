@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ export type FilterValues = {
 
 export function PropertyFilters({ initial }: { initial: FilterValues }) {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [q, setQ] = useState(initial.q ?? "");
   const [type, setType] = useState(initial.type ?? "all");
   const [status, setStatus] = useState(initial.status ?? "all");
@@ -57,8 +59,22 @@ export function PropertyFilters({ initial }: { initial: FilterValues }) {
     if (maxPrice) params.set("maxPrice", maxPrice);
     // Note: `page` is intentionally dropped so new filters start on page 1.
     const query = params.toString();
-    router.push(query ? `/properties?${query}` : "/properties");
+    startTransition(() =>
+      router.push(query ? `/properties?${query}` : "/properties"),
+    );
   }
+
+  // Live search: auto-apply the text query shortly after the user stops typing.
+  const debouncedQ = useDebouncedValue(q, 400);
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    apply();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
 
   function clear() {
     setQ("");
@@ -66,7 +82,7 @@ export function PropertyFilters({ initial }: { initial: FilterValues }) {
     setStatus("all");
     setMinPrice("");
     setMaxPrice("");
-    router.push("/properties");
+    startTransition(() => router.push("/properties"));
   }
 
   const hasFilters =
@@ -88,7 +104,11 @@ export function PropertyFilters({ initial }: { initial: FilterValues }) {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search title or address"
           className="pl-8"
+          aria-label="Search properties"
         />
+        {pending && (
+          <Loader2 className="absolute right-2.5 top-2.5 size-4 animate-spin text-muted-foreground" />
+        )}
       </div>
 
       <Select value={type} onValueChange={setType}>
@@ -135,8 +155,9 @@ export function PropertyFilters({ initial }: { initial: FilterValues }) {
       />
 
       <div className="flex gap-2 sm:col-span-2 lg:col-span-6">
-        <Button type="submit">
-          <Search /> Apply filters
+        <Button type="submit" disabled={pending}>
+          {pending ? <Loader2 className="animate-spin" /> : <Search />} Apply
+          filters
         </Button>
         {hasFilters && (
           <Button type="button" variant="ghost" onClick={clear}>

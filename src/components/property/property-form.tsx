@@ -147,7 +147,6 @@ export function PropertyForm({
   }
 
   const isSubmitting = form.formState.isSubmitting;
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -373,7 +372,6 @@ export function PropertyForm({
             </FormItem>
           )}
         />
-
         {/* Location / map */}
         <FormField
           control={form.control}
@@ -403,7 +401,6 @@ export function PropertyForm({
             </FormItem>
           )}
         />
-
         {/* Images */}
         <FormField
           control={form.control}
@@ -424,7 +421,6 @@ export function PropertyForm({
             </FormItem>
           )}
         />
-
         <div className="flex items-center justify-end gap-3 border-t pt-6">
           <Button
             type="button"
@@ -443,3 +439,4 @@ export function PropertyForm({
     </Form>
   );
 }
+

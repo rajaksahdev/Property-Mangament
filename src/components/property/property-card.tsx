@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Building2, MapPin, Pencil, UserPlus } from "lucide-react";
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { SafeImage } from "@/components/safe-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
@@ -36,7 +36,7 @@ export function PropertyCard({ property }: { property: PropertyCardData }) {
     <Card className="flex flex-col overflow-hidden pt-0">
       <div className="relative aspect-video bg-muted">
         {property.coverImage ? (
-          <Image
+          <SafeImage
             src={property.coverImage}
             alt={property.title}
             fill
