@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
 import { formatCurrency, formatDate, formatMonth } from "@/lib/format";
@@ -10,12 +12,27 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RENEWAL_WINDOWS = [30, 15, 7];
 
+/** Constant-time string compare that never leaks length via early return. */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  // timingSafeEqual throws on length mismatch; hash to fixed length first.
+  if (ab.length !== bb.length) {
+    // Still run a compare against `a` itself so timing stays uniform.
+    timingSafeEqual(ab, ab);
+    return false;
+  }
+  return timingSafeEqual(ab, bb);
+}
+
 /** Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. */
 export function isCronAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  if (request.headers.get("authorization") === `Bearer ${secret}`) return true;
-  if (request.headers.get("x-cron-secret") === secret) return true;
+  const bearer = request.headers.get("authorization");
+  if (bearer && safeEqual(bearer, `Bearer ${secret}`)) return true;
+  const header = request.headers.get("x-cron-secret");
+  if (header && safeEqual(header, secret)) return true;
   return false;
 }
 

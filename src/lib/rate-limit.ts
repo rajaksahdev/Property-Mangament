@@ -27,6 +27,8 @@ function build(
 export const authLimiter = build(5, "10 m", "rl:auth");
 /** 30 / min for payment webhook ingestion. */
 export const paymentLimiter = build(30, "1 m", "rl:payment");
+/** 10 / min per tenant for booking/inquiry creation. */
+export const bookingLimiter = build(10, "1 m", "rl:booking");
 
 export async function getClientIp(): Promise<string> {
   const h = await headers();
